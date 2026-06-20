@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>家庭点菜</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: #f0f2f5; color: #333; min-height: 100vh; }
+.header { background: linear-gradient(135deg, #ff6b35, #f7931e); color: #fff; text-align: center; padding: 16px 16px 10px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 12px rgba(255,107,53,0.3); }
+.header h1 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+.header .sub { font-size: 12px; opacity: 0.85; }
+
+/* 角色切换标签 */
+.role-tabs { display: flex; gap: 0; margin: 8px 12px 0; background: #e8e8e8; border-radius: 10px; padding: 3px; }
+.role-tab { flex: 1; padding: 8px 0; text-align: center; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.25s; border: none; background: transparent; color: #888; }
+.role-tab.active { background: #fff; color: #333; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+.role-tab.cook.active { background: #27ae60; color: #fff; }
+
+/* 模式切换标签 */
+.mode-tabs { display: flex; gap: 0; margin: 8px 12px 0; background: #e8e8e8; border-radius: 10px; padding: 3px; }
+.mode-tab { flex: 1; padding: 10px 0; text-align: center; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.25s; border: none; background: transparent; color: #888; }
+.mode-tab.active { background: #fff; color: #333; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+.mode-tab.diet { position: relative; }
+.mode-tab.diet .badge { position: absolute; top: -4px; right: 4px; background: #27ae60; color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 8px; font-weight: 500; }
+
+/* 健康提醒开关 */
+.health-bar { display: flex; gap: 8px; margin: 8px 12px 0; }
+.health-tag-btn { flex: 1; padding: 7px 0; border-radius: 18px; border: 1.5px solid #ddd; background: #fff; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #888; text-align: center; }
+.health-tag-btn.active { color: #fff; border-color: transparent; }
+.health-tag-btn.sugar.active { background: #e67e22; }
+.health-tag-btn.pressure.active { background: #c0392b; }
+
+/* 健康提醒标签 */
+.health-badge { position: absolute; bottom: 6px; padding: 2px 7px; border-radius: 10px; font-size: 10px; font-weight: 700; z-index: 10; line-height: 1.5; color: #fff; pointer-events: none; }
+.health-badge.left { left: 6px; }
+.health-badge.right { right: 6px; }
+.health-badge.avoid { background: #e74c3c; }
+.health-badge.limit { background: #f39c12; }
+
+.cart-bar { display: flex; align-items: center; justify-content: space-between; background: #fff; padding: 10px 14px; margin: 8px 12px 0; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.cart-bar .count { font-size: 14px; font-weight: 600; }
+.cart-bar .count span { color: #ff6b35; font-size: 20px; }
+.cart-bar .count .mode-label { font-size: 11px; color: #999; margin-left: 2px; }
+.cart-bar .btns { display: flex; gap: 8px; }
+.btn { border: none; border-radius: 8px; padding: 9px 16px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.btn:active { transform: scale(0.96); }
+.btn-cart { background: #ff6b35; color: #fff; }
+.btn-submit { background: #27ae60; color: #fff; }
+.container { padding: 8px 12px; padding-bottom: 100px; }
+.section-title { font-size: 16px; font-weight: 700; margin: 18px 0 10px; padding: 8px 12px; border-radius: 8px; color: #fff; display: flex; align-items: center; gap: 8px; letter-spacing: 1px; }
+.section-title .icon { font-size: 22px; }
+.section-title.meat { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+.section-title.veggie { background: linear-gradient(135deg, #27ae60, #1e8449); }
+.section-title.soup { background: linear-gradient(135deg, #f39c12, #d68910); }
+.section-title.staple { background: linear-gradient(135deg, #8e44ad, #6c3483); }
+.menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.menu-item { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; position: relative; }
+.menu-item:active { transform: scale(0.97); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+.menu-item .img-wrap { width: 100%; height: 130px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.menu-item .img-wrap .emoji-bg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 68px; z-index: 1; text-shadow: 0 4px 20px rgba(0,0,0,0.12); }
+.menu-item .img-wrap .emoji-bg::after { content: ''; position: absolute; inset: 30%; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,0.35) 0%, transparent 70%); pointer-events: none; }
+.menu-item .img-wrap img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2; display: block; }
+.menu-item .img-wrap img.error-img { display: none; }
+.menu-item .info { padding: 10px 12px; display: flex; align-items: center; justify-content: center; background: #fff; position: relative; z-index: 3; }
+.menu-item .name { font-size: 15px; font-weight: 600; }
+.menu-item.in-cart { border: 2px solid #27ae60; box-shadow: 0 2px 14px rgba(39,174,96,0.25); }
+.menu-item .qty-badge { position: absolute; right: 8px; top: 8px; background: #27ae60; color: #fff; min-width: 26px; height: 26px; border-radius: 13px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; padding: 0 6px; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+
+/* Modal */
+.modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 200; align-items: flex-end; justify-content: center; }
+.modal-overlay.show { display: flex; }
+.modal { background: #fff; border-radius: 16px 16px 0 0; width: 100%; max-width: 500px; max-height: 85vh; overflow-y: auto; padding: 20px 16px 24px; animation: slideUp 0.25s ease; position: relative; }
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal h3 { font-size: 18px; margin-bottom: 16px; text-align: center; }
+.modal .close { position: absolute; right: 16px; top: 18px; width: 30px; height: 30px; border: none; background: #f0f0f0; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.cart-list { list-style: none; }
+.cart-list li { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; gap: 8px; flex-wrap: wrap; }
+.cart-list .c-thumb { width: 48px; height: 48px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 30px; position: relative; overflow: hidden; }
+.cart-list .c-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2; border-radius: 10px; }
+.cart-list .c-thumb img.error-img { display: none; }
+.cart-list .c-name { flex: 1; font-size: 15px; font-weight: 500; min-width: 80px; }
+.cart-list .c-note-btn { width: 32px; height: 32px; border: 1px solid #ddd; border-radius: 6px; background: #fff; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.cart-list .c-note { width: 100%; margin-left: 56px; font-size: 12px; color: #888; background: #f9f9f9; padding: 4px 8px; border-radius: 6px; }
+.cart-list .qty-ctrl { display: flex; align-items: center; flex-shrink: 0; }
+.cart-list .qty-ctrl button { width: 32px; height: 32px; border: 1px solid #ddd; background: #f9f9f9; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 6px; }
+.cart-list .qty-ctrl .qty { width: 38px; height: 32px; border-top: 1px solid #ddd; border-bottom: 1px solid #ddd; text-align: center; font-size: 15px; font-weight: 600; background: #fafafa; line-height: 32px; }
+.cart-summary { margin-top: 16px; padding: 12px 16px; background: #fef9f3; border-radius: 10px; text-align: center; }
+.cart-summary .row { font-size: 15px; font-weight: 600; }
+.cart-summary .row span { color: #ff6b35; font-size: 20px; }
+
+.note-section { margin-top: 12px; }
+.note-section label { font-size: 14px; font-weight: 600; display: block; margin-bottom: 4px; }
+.note-section textarea, .note-section input { width: 100%; border: 1px solid #ddd; border-radius: 8px; padding: 10px; font-size: 14px; font-family: inherit; }
+.note-section textarea { height: 60px; resize: none; }
+.cart-actions { display: flex; gap: 10px; margin-top: 16px; }
+.cart-actions .btn { flex: 1; text-align: center; }
+.order-content { background: #f9fafb; border-radius: 10px; padding: 14px; font-size: 14px; line-height: 1.8; margin-bottom: 12px; white-space: pre-wrap; }
+.order-actions { display: flex; gap: 10px; }
+.order-actions .btn { flex: 1; text-align: center; }
+.toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 15px; z-index: 999; animation: fadeInOut 2s ease forwards; pointer-events: none; }
+@keyframes fadeInOut { 0% { opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; } }
+.empty-cart { text-align: center; padding: 40px 0; color: #aaa; font-size: 15px; }
+
+/* 做菜人界面 */
+.cook-container { padding: 8px 12px; padding-bottom: 100px; }
+.order-card { background: #fff; border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.order-card .order-hd { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+.order-card .order-hd .o-time { font-size: 13px; color: #888; }
+.order-card .order-hd .o-count { font-size: 14px; font-weight: 600; }
+.order-card .order-hd .o-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+.order-card .order-hd .o-badge.normal { background: #ffe0cc; color: #ff6b35; }
+.order-card .order-hd .o-badge.diet { background: #d5f5e3; color: #27ae60; }
+.order-detail { display: none; margin-top: 12px; border-top: 1px solid #eee; padding-top: 12px; }
+.order-detail.show { display: block; }
+.order-detail h4 { font-size: 14px; font-weight: 700; margin: 10px 0 6px; color: #555; }
+.order-detail .dish-list { font-size: 13px; line-height: 2; }
+.order-detail .dish-list .dq { color: #ff6b35; font-weight: 600; margin-right: 6px; }
+.order-detail .dish-list .dn { color: #999; font-size: 11px; }
+.order-detail .ingr-list { display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: 13px; line-height: 1.8; }
+.order-detail .ingr-item { background: #f0f7ff; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
+.order-detail .ingr-item .count { color: #e74c3c; font-weight: 700; }
+.order-detail .btn-done { width: 100%; margin-top: 12px; padding: 10px; border-radius: 10px; border: none; background: #27ae60; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; }
+/* 教程区域 */
+.tutorial-toggle { display: inline-block; margin-top: 6px; padding: 5px 12px; border: 1px solid #ddd; border-radius: 14px; background: #fafafa; font-size: 12px; color: #666; cursor: pointer; transition: all 0.2s; }
+.tutorial-toggle:hover { background: #f0f0f0; color: #333; }
+.tutorial-toggle.active { background: #ff6b35; color: #fff; border-color: #ff6b35; }
+.tutorial-area { display: none; margin-top: 8px; padding: 10px; background: #fffbeb; border-radius: 8px; font-size: 12px; }
+.tutorial-area.show { display: block; }
+.tutorial-area ol { margin: 4px 0 0 18px; line-height: 1.8; }
+.tutorial-area ol li { color: #555; }
+.tutorial-link { display: inline-block; margin-top: 8px; padding: 6px 14px; background: #fb7299; color: #fff; border-radius: 14px; text-decoration: none; font-size: 12px; font-weight: 500; }
+.tutorial-link:active { opacity: 0.8; }
+/* 备菜/烹饪阶段标签 */
+.stage-badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: 700; color: #fff; margin: 8px 0 4px; }
+.stage-badge.prep { background: #e67e22; }
+.stage-badge.cook { background: #e74c3c; }
+.stage-steps { font-size: 12px; color: #555; line-height: 1.8; padding-left: 4px; }
+/* 整体备菜清单 */
+.prep-summary { background: #fffbf0; border: 1px solid #f0d89c; border-radius: 10px; padding: 12px 14px; margin: 8px 0 12px; }
+.prep-summary h4 { font-size: 14px; font-weight: 700; color: #e67e22; margin-bottom: 10px; }
+.prep-cat { margin-bottom: 8px; }
+.prep-cat .cat-label { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: 700; color: #fff; margin-right: 6px; vertical-align: middle; }
+.prep-cat .cat-label.wash { background: #3498db; }
+.prep-cat .cat-label.blanch { background: #1abc9c; }
+.prep-cat .cat-label.deodorize { background: #2980b9; }
+.prep-cat .cat-label.defrost { background: #2e86c1; }
+.prep-cat .cat-label.soak { background: #16a085; }
+.prep-cat .cat-label.knead { background: #d4a017; }
+.prep-cat .cat-label.ferment { background: #e67e22; }
+.prep-cat .cat-label.debone { background: #7f8c8d; }
+.prep-cat .cat-label.smash { background: #c0392b; }
+.prep-cat .cat-label.peel { background: #d4a017; }
+.prep-cat .cat-label.marinate { background: #f39c12; }
+.prep-cat .cat-label.chunk { background: #7b5ea7; }
+.prep-cat .cat-label.slice { background: #8e44ad; }
+.prep-cat .cat-label.shred { background: #9b59b6; }
+.prep-cat .cat-label.dice { background: #6c3483; }
+.prep-cat .cat-label.section { background: #5b2c6f; }
+.prep-cat .cat-label.misc { background: #95a5a6; }
+.prep-cat ul.prep-steps { margin: 4px 0 0 8px; padding: 0; list-style: none; font-size: 12px; color: #444; line-height: 1.8; }
+.prep-cat ul.prep-steps li { padding: 1px 0; }
+.prep-cat ul.prep-steps .prep-src { color: #999; font-size: 11px; margin-left: 2px; }
+@media (min-width: 500px) {
+  .menu-grid { grid-template-columns: repeat(3, 1fr); }
+}
+/* 减脂档案卡片 */
+.diet-profile { background: #fff; border-radius: 14px; margin: 8px 12px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden; display: none; }
+.diet-profile.show { display: block; }
+.diet-profile .dp-hd { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; cursor: pointer; background: linear-gradient(135deg, #e8f5e9, #c8e6c9); }
+.diet-profile .dp-hd .dp-title { font-size: 15px; font-weight: 700; color: #2e7d32; display: flex; align-items: center; gap: 6px; }
+.diet-profile .dp-hd .dp-toggle { font-size: 12px; color: #666; transition: transform 0.2s; }
+.diet-profile .dp-body { padding: 0 14px; max-height: 0; overflow: hidden; transition: max-height 0.3s ease, padding 0.3s ease; }
+.diet-profile .dp-body.open { max-height: 600px; padding: 12px 14px 16px; }
+.diet-profile .dp-row { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; align-items: center; }
+.diet-profile .dp-row label { font-size: 13px; font-weight: 600; color: #555; min-width: 40px; }
+.diet-profile .dp-row input, .diet-profile .dp-row select { flex: 1; min-width: 60px; border: 1px solid #ddd; border-radius: 8px; padding: 7px 8px; font-size: 13px; font-family: inherit; }
+.diet-profile .dp-row .dp-half { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; }
+.diet-profile .dp-result { background: #f1f8e9; border-radius: 10px; padding: 12px 14px; margin-top: 8px; }
+.diet-profile .dp-result .dp-val { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+.diet-profile .dp-result .dp-val b { color: #2e7d32; }
+.diet-profile .dp-result .dp-macros { display: flex; gap: 8px; margin-top: 8px; }
+.diet-profile .dp-result .dp-macro { flex: 1; text-align: center; padding: 8px 4px; border-radius: 8px; font-size: 12px; }
+.diet-profile .dp-result .dp-macro.pro { background: #ffebee; color: #c62828; }
+.diet-profile .dp-result .dp-macro.carb { background: #fff8e1; color: #f57f17; }
+.diet-profile .dp-result .dp-macro.fat { background: #e8f5e9; color: #2e7d32; }
+.diet-profile .dp-result .dp-macro .num { font-size: 18px; font-weight: 700; }
+.diet-profile .dp-save { width: 100%; margin-top: 8px; padding: 9px; border-radius: 10px; border: none; background: #27ae60; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+.diet-profile .dp-save:active { opacity: 0.8; }
+/* 菜品营养标签 */
+.menu-item .nutri-tag { position: absolute; left: 6px; top: 6px; background: rgba(39,174,96,0.92); color: #fff; font-size: 10px; padding: 2px 7px; border-radius: 6px; font-weight: 600; z-index: 10; white-space: nowrap; }
+/* 购物车营养汇总 */
+.cart-nutri { margin-top: 8px; padding: 10px 14px; background: #e8f5e9; border-radius: 10px; font-size: 13px; }
+.cart-nutri .cn-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+.cart-nutri .cn-row .cn-label { color: #555; }
+.cart-nutri .cn-row .cn-val { font-weight: 700; color: #2e7d32; }
+.cart-nutri .cn-bar-wrap { margin-top: 6px; background: #ddd; border-radius: 4px; height: 8px; overflow: hidden; }
+.cart-nutri .cn-bar { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #27ae60, #f39c12); transition: width 0.3s; }
+.cart-nutri .cn-warn { font-size: 11px; color: #e67e22; margin-top: 2px; }
+/* 多角色档案卡片 */
+.profile-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.profile-card { flex: 1; min-width: 120px; background: #f5f5f5; border-radius: 10px; padding: 8px 10px; position: relative; cursor: default; }
+.profile-card .pc-name { font-weight: 700; font-size: 13px; color: #333; }
+.profile-card .pc-info { font-size: 11px; color: #888; margin-top: 2px; }
+.profile-card .pc-goal { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 6px; margin-top: 3px; }
+.profile-card .pc-goal.cut { background: #e8f5e9; color: #2e7d32; }
+.profile-card .pc-goal.bulk { background: #fff3e0; color: #e65100; }
+.profile-card .pc-goal.maintain { background: #e3f2fd; color: #1565c0; }
+.profile-card .pc-bar { display: flex; gap: 6px; margin-top: 8px; }
+.profile-card .pc-bar-btn { flex: 1; height: 30px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+.profile-card .pc-bar-btn:active { transform: scale(0.96); }
+.profile-card .pc-bar-edit { background: #e3f2fd; color: #1565c0; }
+.profile-card .pc-bar-edit:hover { background: #bbdefb; }
+.profile-card .pc-bar-del { background: #ffebee; color: #c62828; }
+.profile-card .pc-bar-del:hover { background: #ffcdd2; }
+.profile-card .pc-add { width: 100%; min-height: 50px; display: flex; align-items: center; justify-content: center; border: 2px dashed #ccc; border-radius: 10px; cursor: pointer; font-size: 24px; color: #aaa; background: transparent; padding: 0; }
+.profile-card .pc-add:hover { border-color: #27ae60; color: #27ae60; }
+/* 档案编辑弹窗 */
+.profile-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 2000; display: none; align-items: center; justify-content: center; }
+.profile-modal.show { display: flex; }
+.profile-modal .pm-inner { background: #fff; border-radius: 16px; padding: 20px; width: 90%; max-width: 340px; }
+.profile-modal .pm-inner h3 { margin: 0 0 12px; font-size: 16px; }
+.profile-modal .pm-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+.profile-modal .pm-row label { font-size: 13px; font-weight: 600; color: #555; min-width: 40px; }
+.profile-modal .pm-row input, .profile-modal .pm-row select { flex: 1; min-width: 60px; border: 1px solid #ddd; border-radius: 8px; padding: 7px 8px; font-size: 13px; font-family: inherit; }
+.profile-modal .pm-row .pm-half { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; }
+.profile-modal .pm-btns { display: flex; gap: 8px; margin-top: 12px; }
+.profile-modal .pm-btns button { flex: 1; padding: 9px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; }
+.profile-modal .pm-btns .pm-cancel { background: #eee; color: #333; }
+.profile-modal .pm-btns .pm-save { background: #27ae60; color: #fff; }
+/* 用餐人选择 */
+.diner-select { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0; margin-bottom: 4px; }
+.diner-select .ds-tag { padding: 4px 10px; border-radius: 14px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1.5px solid #ddd; background: #fff; color: #666; transition: all 0.15s; }
+.diner-select .ds-tag.selected { background: #27ae60; border-color: #27ae60; color: #fff; }
+.diner-select .ds-none { font-size: 12px; color: #999; }
+/* 今日推荐 */
+.reco-section { margin: 0 12px 8px; display: none; }
+.reco-section.show { display: block; }
+.reco-section .reco-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.reco-section .reco-hd .reco-title { font-size: 14px; font-weight: 700; color: #2e7d32; }
+.reco-section .reco-hd .reco-refresh { padding: 5px 12px; border-radius: 14px; border: 1px solid #27ae60; background: #fff; color: #27ae60; font-size: 12px; font-weight: 600; cursor: pointer; }
+.reco-section .reco-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; }
+.reco-section .reco-scroll::-webkit-scrollbar { display: none; }
+.reco-card { flex: 0 0 260px; scroll-snap-align: start; background: linear-gradient(135deg, #e8f5e9, #f1f8e9); border-radius: 14px; padding: 12px 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.reco-card .rc-dishes { font-size: 13px; color: #333; margin-bottom: 6px; }
+.reco-card .rc-dishes span { display: inline-block; margin-right: 4px; }
+.reco-card .rc-stats { font-size: 11px; color: #666; margin-bottom: 8px; }
+.reco-card .rc-stats b { color: #2e7d32; }
+.reco-card .rc-btn { width: 100%; padding: 8px; border-radius: 10px; border: none; background: #27ae60; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
+.reco-card .rc-btn:active { opacity: 0.8; }
+/* 餐次选择器 */
+.meal-tabs { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+.meal-tabs .mt-tab { padding: 5px 12px; border-radius: 14px; border: 1.5px solid #ddd; background: #fff; color: #666; font-size: 12px; font-weight: 600; cursor: pointer; }
+.meal-tabs .mt-tab.active { background: #27ae60; border-color: #27ae60; color: #fff; }
+.meal-tabs .mt-tab .mt-sub { font-size: 10px; font-weight: 400; opacity: 0.85; }
+/* 顿数选择按钮组 */
+.meal-count-btns { display: flex; gap: 4px; }
+.meal-count-btns .mcb-btn { padding: 4px 10px; border-radius: 14px; border: 1.5px solid #ddd; background: #fff; color: #666; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+.meal-count-btns .mcb-btn.active { background: #27ae60; border-color: #27ae60; color: #fff; }
+.meal-count-btns .mcb-btn:active { transform: scale(0.95); }
+/* 份量选择器 */
+.portion-ctrl { display: flex; gap: 2px; margin-top: 4px; }
+.portion-ctrl .pt-btn { flex: 1; padding: 3px 0; border: 1px solid #ddd; border-radius: 6px; background: #f9f9f9; font-size: 10px; cursor: pointer; text-align: center; color: #999; transition: all 0.15s; }
+.portion-ctrl .pt-btn.pt-sel { background: #27ae60; border-color: #27ae60; color: #fff; }
+.portion-ctrl .pt-btn:hover:not(.pt-sel) { border-color: #27ae60; color: #27ae60; }
+/* 购物车份量标识 */
+.cart-portion { font-size: 10px; color: #27ae60; margin-left: 4px; font-weight: 500; }
+.reco-card .rc-meal-tag { font-size: 10px; background: #c8e6c9; color: #2e7d32; display: inline-block; padding: 1px 6px; border-radius: 6px; margin-bottom: 4px; }
+/* 份量可视化提示 */
+.pt-viz { font-size: 10px; color: #aaa; margin-top: 2px; text-align: center; }
+/* 减脂模式用餐人选择栏 */
+.diner-select-bar { background: #fff; border-radius: 14px; margin: 8px 12px 0; padding: 12px 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: none; }
+.diner-select-bar.show { display: block; }
+.diner-select-bar .dsb-title { font-size: 13px; font-weight: 700; color: #2e7d32; margin-bottom: 8px; }
+.diner-select-bar .dsb-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.diner-select-bar .dsb-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.diner-select-bar .dsb-meal-count { display: flex; align-items: center; gap: 4px; font-size: 12px; color: #888; }
+.diner-select-bar .dsb-meal-count select { border: 1px solid #ddd; border-radius: 8px; padding: 4px 8px; font-size: 12px; font-family: inherit; }
+.diner-select-bar .dsb-hint { font-size: 11px; color: #e67e22; text-align: center; margin-top: 4px; font-weight: 500; }
+/* 餐次选择弹窗 */
+.meal-type-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 2000; display: none; align-items: center; justify-content: center; }
+.meal-type-modal.show { display: flex; }
+.meal-type-modal .mtm-inner { background: #fff; border-radius: 16px; padding: 20px; width: 90%; max-width: 300px; text-align: center; }
+.meal-type-modal .mtm-inner h3 { margin: 0 0 16px; font-size: 16px; }
+.meal-type-modal .mtm-btns { display: flex; gap: 8px; justify-content: center; }
+.meal-type-modal .mtm-btn { flex: 1; padding: 12px; border-radius: 12px; border: none; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+.meal-type-modal .mtm-btn:active { transform: scale(0.95); }
+.meal-type-modal .mtm-btn.breakfast { background: #fff3e0; color: #e67e22; }
+.meal-type-modal .mtm-btn.lunch { background: #e8f5e9; color: #27ae60; }
+.meal-type-modal .mtm-btn.dinner { background: #e3f2fd; color: #1565c0; }
+/* 做菜人餐次分区 */
+.cook-meal-section { margin-bottom: 12px; }
+.cook-meal-section .cms-header { font-size: 16px; font-weight: 700; padding: 8px 12px; margin-bottom: 6px; border-radius: 10px; }
+.cook-meal-section .cms-header.breakfast { background: #fff3e0; color: #e67e22; }
+.cook-meal-section .cms-header.lunch { background: #e8f5e9; color: #27ae60; }
+.cook-meal-section .cms-header.dinner { background: #e3f2fd; color: #1565c0; }
+.cook-meal-section .cms-empty { text-align: center; padding: 16px; color: #aaa; font-size: 13px; }
+.o-meal-tag { font-size: 10px; padding: 2px 6px; border-radius: 8px; font-weight: 600; display: inline-block; margin-right: 4px; }
+.o-meal-tag.breakfast { background: #fff3e0; color: #e67e22; }
+.o-meal-tag.lunch { background: #e8f5e9; color: #27ae60; }
+.o-meal-tag.dinner { background: #e3f2fd; color: #1565c0; }
+.o-diner-count { font-size: 11px; color: #888; margin-left: 4px; }
+/* 日常模式餐次标签 */
+.daily-meal-tabs { display: flex; gap: 6px; margin: 8px 12px 0; }
+.daily-meal-tabs .dmt-tab { flex:1; padding: 8px 0; text-align: center; border-radius: 18px; border: 1.5px solid #ddd; background: #fff; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; color: #888; }
+.daily-meal-tabs .dmt-tab.active { color: #fff; border-color: transparent; }
+.daily-meal-tabs .dmt-tab.active.breakfast { background: #e67e22; }
+.daily-meal-tabs .dmt-tab.active.lunch { background: #27ae60; }
+.daily-meal-tabs .dmt-tab.active.dinner { background: #1565c0; }
+/* 用餐人选择栏标签（补充 ds-tag 样式作用域） */
+.diner-select-bar .ds-tag { padding: 4px 10px; border-radius: 14px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1.5px solid #ddd; background: #fff; color: #666; transition: all 0.15s; }
+.diner-select-bar .ds-tag.selected { background: #27ae60; border-color: #27ae60; color: #fff; }
+.diner-select-bar .ds-none { font-size: 12px; color: #999; }
+/* 做菜人删除/移除按钮 */
+.btn-del-order { background: #e74c3c; color: #fff; border: none; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; margin-left: 8px; }
+.btn-del-order:active { opacity: 0.8; }
+.btn-remove-dish { background: none; border: 1px solid #e74c3c; color: #e74c3c; border-radius: 6px; padding: 2px 8px; font-size: 11px; cursor: pointer; margin-left: 6px; }
+.btn-remove-dish:active { background: #e74c3c; color: #fff; }
+.order-card .order-hd-btns { display: flex; align-items: center; gap: 6px; }
+.dish-merged { display: flex; align-items: center; padding: 2px 0; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div class="header">
+  <h1>家庭点菜</h1>
+  <div class="sub">选好菜，一键发给家人</div>
+</div>
+
+<!-- 角色切换标签 -->
+<div class="role-tabs">
+  <button class="role-tab active" id="roleCustomer" onclick="switchRole('customer')">点菜</button>
+  <button class="role-tab cook" id="roleCook" onclick="switchRole('cook')">做菜</button>
+</div>
+
+<!-- 点菜人区域 -->
+<div id="customerArea">
+  <!-- 模式切换标签 -->
+  <div class="mode-tabs">
+    <button class="mode-tab active" id="tabNormal" onclick="switchMode('normal')">日常模式</button>
+    <button class="mode-tab diet" id="tabDiet" onclick="switchMode('diet')">减脂模式 <span class="badge">轻食</span></button>
+  </div>
+
+  <!-- 健康提醒开关 -->
+  <div class="health-bar">
+    <button class="health-tag-btn sugar" id="healthSugar" onclick="switchHealth('diabetes')">糖尿病提醒</button>
+    <button class="health-tag-btn pressure" id="healthPressure" onclick="switchHealth('hypertension')">高血压提醒</button>
+  </div>
+
+  <!-- 日常模式餐次选择 -->
+  <div class="daily-meal-tabs" id="dailyMealTabs">
+    <span class="dmt-tab breakfast" onclick="setDailyMeal('breakfast')">🌅 早餐</span>
+    <span class="dmt-tab lunch active" onclick="setDailyMeal('lunch')">☀️ 午餐</span>
+    <span class="dmt-tab dinner" onclick="setDailyMeal('dinner')">🌙 晚餐</span>
+  </div>
+
+  <!-- 减脂档案卡片（仅减脂模式显示） -->
+  <div class="diet-profile" id="dietProfile">
+    <div class="dp-hd" onclick="toggleDietProfile()">
+      <span class="dp-title">📊 个人减脂档案</span>
+      <span class="dp-toggle" id="dpToggleIcon">展开 ▼</span>
+    </div>
+    <div class="dp-body" id="dpBody">
+      <div class="profile-list" id="profileList"></div>
+      <div class="dp-result" id="dpResult" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- 减脂模式用餐人选择栏 -->
+  <div class="diner-select-bar" id="dinerSelectBar">
+    <div class="dsb-title">谁要吃减脂餐？（可多选）</div>
+    <div class="dsb-tags" id="dinerSelectTags"></div>
+    <div class="dsb-row">
+      <span style="font-size:12px;color:#888;">一天吃几顿</span>
+      <div class="meal-count-btns" id="mealCountBtns1"></div>
+    </div>
+    <div class="dsb-hint" id="dinerHint">请先选择用餐人，再查看推荐套餐</div>
+  </div>
+
+  <!-- 档案编辑弹窗 -->
+  <div class="profile-modal" id="profileModal">
+    <div class="pm-inner">
+      <h3 id="pmTitle">添加角色</h3>
+      <input type="hidden" id="pmId">
+      <div class="pm-row"><label>姓名</label><input type="text" id="pmName" placeholder="如：妈妈" maxlength="10"></div>
+      <div class="pm-row">
+        <div class="pm-half"><label>性别</label><select id="pmGender"><option value="male">男</option><option value="female">女</option></select></div>
+        <div class="pm-half"><label>年龄</label><input type="number" id="pmAge" min="10" max="99" placeholder="25"></div>
+      </div>
+      <div class="pm-row">
+        <div class="pm-half"><label>身高</label><input type="number" id="pmHeight" min="100" max="250" placeholder="cm"></div>
+        <div class="pm-half"><label>体重</label><input type="number" id="pmWeight" min="30" max="200" placeholder="kg"></div>
+      </div>
+      <div class="pm-row">
+        <div class="pm-half"><label>目标</label><select id="pmGoal"><option value="cut">减脂</option><option value="bulk">增肌</option><option value="maintain">维持</option></select></div>
+      </div>
+      <div class="pm-btns">
+        <button class="pm-cancel" onclick="closeProfileModal()">取消</button>
+        <button class="pm-save" onclick="saveProfileEdit()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 今日推荐（仅减脂模式显示） -->
+  <div class="reco-section" id="recoSection">
+    <div class="reco-hd">
+      <span class="reco-title">今日推荐套餐</span>
+      <div class="meal-count-btns" id="mealCountBtns2"></div>
+      <button class="reco-refresh" onclick="refreshRecommend()">🔄 换一换</button>
+    </div>
+    <div class="meal-tabs" id="mealTabs"></div>
+    <div class="reco-scroll" id="recoScroll"></div>
+  </div>
+
+  <div class="cart-bar" id="cartBar">
+    <div class="count">已选 <span id="cartCount">0</span> 道<span class="mode-label" id="modeLabel"> · 日常</span></div>
+    <div class="btns">
+      <button class="btn btn-cart" onclick="openCart()">购物车</button>
+      <button class="btn btn-submit" onclick="submitOrder()">下单</button>
+    </div>
+  </div>
+
+  <div class="container" id="menuContainer"></div>
+</div>
+
+<!-- 做菜人区域 -->
+<div id="cookArea" style="display:none;">
+  <div class="cook-container" id="cookContainer">
+    <div class="empty-cart">暂无待处理订单</div>
+  </div>
+</div>
+
+<!-- 购物车 Modal -->
+<div class="modal-overlay" id="cartModal">
+  <div class="modal">
+    <button class="close" onclick="closeCart()">✕</button>
+    <h3>购物车</h3>
+    <div id="cartContent"></div>
+    <div class="note-section">
+      <label>全局备注（口味要求等）</label>
+      <textarea id="orderNote" placeholder="例如：少放辣、不要香菜…"></textarea>
+    </div>
+    <div class="cart-actions">
+      <button class="btn" style="background:#eee;color:#333;" onclick="clearCart()">清空</button>
+      <button class="btn btn-submit" onclick="submitOrder()">提交订单</button>
+    </div>
+  </div>
+</div>
+
+<!-- 订单汇总 Modal -->
+<div class="modal-overlay" id="orderModal">
+  <div class="modal">
+    <button class="close" onclick="closeOrder()">✕</button>
+    <h3>订单汇总</h3>
+    <div class="order-content" id="orderContent"></div>
+    <div class="order-actions">
+      <button class="btn" style="background:#eee;color:#333;" onclick="closeOrder()">关闭</button>
+      <button class="btn btn-submit" onclick="copyOrder()">一键复制</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+
+<!-- 单道菜备注 Modal -->
+<div class="modal-overlay" id="noteModal">
+  <div class="modal">
+    <button class="close" onclick="closeNoteModal()">✕</button>
+    <h3>单独备注 - <span id="noteDishName"></span></h3>
+    <input type="hidden" id="noteDishId">
+    <div class="note-section">
+      <input id="noteDishInput" placeholder="例如：少盐、不加葱、多放辣…">
+    </div>
+    <div class="cart-actions">
+      <button class="btn" style="background:#eee;color:#333;" onclick="closeNoteModal()">取消</button>
+      <button class="btn btn-submit" onclick="saveDishNote()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 餐次选择弹窗 -->
+<div class="meal-type-modal" id="mealTypeModal">
+  <div class="mtm-inner">
+    <h3>这单是哪一餐？</h3>
+    <div class="mtm-btns">
+      <button class="mtm-btn breakfast" onclick="confirmMealType('breakfast')">🌅 早餐</button>
+      <button class="mtm-btn lunch" onclick="confirmMealType('lunch')">☀️ 午餐</button>
+      <button class="mtm-btn dinner" onclick="confirmMealType('dinner')">🌙 晚餐</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
