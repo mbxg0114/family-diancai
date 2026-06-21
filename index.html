@@ -1519,14 +1519,28 @@ async function confirmMealType(mealType) {
 
 async function saveOrder(order) {
   try {
-    await fetch(REST_URL, { method: 'POST', headers: HEADERS, body: JSON.stringify(order) });
+    const metaItem = { _meta: { mealType: order.mealType, modeLabel: order.modeLabel, dinerCount: order.dinerCount || 0, globalNote: order.globalNote || '', text: order.text || '' } };
+    const dbOrder = { id: order.id, time: order.time, mode: order.mode, items: [metaItem, ...order.items], done: order.done };
+    await fetch(REST_URL, { method: 'POST', headers: HEADERS, body: JSON.stringify(dbOrder) });
   } catch(e) { console.error('Save error:', e); }
 }
 
 async function loadOrders() {
   try {
     const res = await fetch(REST_URL + '?select=*&order=id.desc', { headers: HEADERS });
-    return await res.json();
+    const orders = await res.json();
+    return orders.map(o => {
+      if (o.items && o.items.length > 0 && o.items[0]._meta) {
+        const m = o.items[0]._meta;
+        o.items.splice(0, 1);
+        o.mealType = m.mealType;
+        o.modeLabel = m.modeLabel;
+        o.dinerCount = m.dinerCount;
+        o.globalNote = m.globalNote;
+        o.text = m.text;
+      }
+      return o;
+    });
   } catch(e) { console.error('Load error:', e); return []; }
 }
 
@@ -1815,11 +1829,12 @@ async function removeDishFromOrder(orderId, dishId) {
     const orders = await res.json();
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
-    const idx = order.items.findIndex(i => i.id === dishId);
+    const idx = order.items.findIndex(i => !i._meta && i.id === dishId);
     if (idx < 0) return;
     if (!confirm('确定从订单中移除「' + order.items[idx].emoji + ' ' + order.items[idx].name + '」？')) return;
     order.items.splice(idx, 1);
-    if (order.items.length === 0) {
+    const realItems = order.items.filter(i => !i._meta);
+    if (realItems.length === 0) {
       await fetch(REST_URL + '?id=eq.' + orderId, { method: 'DELETE', headers: HEADERS });
       showToast('菜品已全部移除，订单已删除');
     } else {
